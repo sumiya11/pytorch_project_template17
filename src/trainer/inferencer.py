@@ -129,26 +129,31 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
+        batch_size = batch["unmixed"].shape[0]
         current_id = batch_idx * batch_size
 
         for i in range(batch_size):
             # clone because of
             # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
+            # logits = batch["logits"][i].clone()
+            # label = batch["labels"][i].clone()
+            # pred_label = logits.argmax(dim=-1)
 
-            output_id = current_id + i
+            output_id = str(int(batch['speaker1'][i].item())) + "_" + str(int(batch['speaker2'][i].item()))
 
-            output = {
-                "pred_label": pred_label,
-                "label": label,
+            outputs = {
+                "unmixed": batch['unmixed'],
+                "mixed": batch['mixed'],
+                "signal1": batch['signal1'],
+                "signal2": batch['signal2'],
+                "sr": batch['sr'],
+                'speaker1': batch['speaker1'],
+                'speaker2': batch['speaker2']
             }
 
             if self.save_path is not None:
                 # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+                torch.save(outputs, self.save_path / part / f"output_{output_id}.pth")
 
         return batch
 

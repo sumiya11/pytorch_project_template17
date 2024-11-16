@@ -1,0 +1,14 @@
+train:
+  mixed: # name of the tensor on which we apply transform
+    _target_: torch.nn.Sequential # to apply several transforms sequentially
+    _args_:
+      - _target_: torch.nn.Identity
+        # mean: 0.5
+        # std: 0.5
+inference:
+  mixed: # name of the tensor on which we apply transform
+    _target_: torch.nn.Sequential # to apply several transforms sequentially
+    _args_:
+      - _target_: torch.nn.Identity
+        # mean: 0.5
+        # std: 0.5

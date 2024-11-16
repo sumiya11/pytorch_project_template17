@@ -7,7 +7,10 @@ matplotlib
 pandas
 wandb
 comet_ml
-hydra-core
+hydra-core==1.3.2
+pyloudnorm
+torchaudio
+soundfile
 
 black
 isort

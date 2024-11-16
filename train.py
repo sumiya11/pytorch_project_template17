@@ -2,17 +2,19 @@ import warnings
 
 import hydra
 import torch
+import logging
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
 from src.datasets.data_utils import get_dataloaders
 from src.trainer import Trainer
 from src.utils.init_utils import set_random_seed, setup_saving_and_logging
+from src.utils.io_utils import ROOT_PATH
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-@hydra.main(version_base=None, config_path="src/configs", config_name="baseline")
+@hydra.main(version_base=None, config_path="src/configs")
 def main(config):
     """
     Main script for training. Instantiates the model, optimizer, scheduler,
@@ -33,6 +35,9 @@ def main(config):
     else:
         device = config.trainer.device
 
+
+    print(device)
+
     # setup data_loader instances
     # batch_transforms should be put on device
     dataloaders, batch_transforms = get_dataloaders(config, device)
@@ -44,6 +49,9 @@ def main(config):
     # get function handles of loss and metrics
     loss_function = instantiate(config.loss_function).to(device)
     metrics = instantiate(config.metrics)
+
+    print("Loss: ", loss_function)
+    print("Metrics:", metrics)
 
     # build optimizer, learning rate scheduler
     trainable_params = filter(lambda p: p.requires_grad, model.parameters())

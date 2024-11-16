@@ -1,0 +1,6 @@
+train:
+  _target_: src.datasets.GRIDDataset
+  dir: "data/audio"
+  format: "wav"
+  lufs: -23.0
+  transform: null

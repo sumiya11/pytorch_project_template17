@@ -1,0 +1,10 @@
+_target_: src.model.ConvTasNetModel
+enc_dim: 128      # 512
+feature_dim: 64   # 128
+sr: 16000
+win: 2
+layer: 8
+stack: 3
+kernel: 3
+num_spk: 2
+causal: False

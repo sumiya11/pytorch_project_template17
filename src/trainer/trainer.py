@@ -29,6 +29,9 @@ class Trainer(BaseTrainer):
         batch = self.move_batch_to_device(batch)
         batch = self.transform_batch(batch)  # transform batch on device -- faster
 
+        # print("\n\n___Transformed batch__\n")
+        # print(batch)
+
         metric_funcs = self.metrics["inference"]
         if self.is_train:
             metric_funcs = self.metrics["train"]
@@ -37,8 +40,16 @@ class Trainer(BaseTrainer):
         outputs = self.model(**batch)
         batch.update(outputs)
 
+        # print("\n\n_____Model outputs: ")
+        # print(outputs)
+
         all_losses = self.criterion(**batch)
+
+        # print("\n\n___Losses:", all_losses)
+
         batch.update(all_losses)
+
+        # print("updated batch", batch)
 
         if self.is_train:
             batch["loss"].backward()  # sum of all losses is always called loss

@@ -1,0 +1,5 @@
+train:
+  _target_: src.datasets.AudioVideoDataset
+  dir: D:\Downloads_2\dla_dataset\
+  mode: train
+  transform: null

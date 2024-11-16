@@ -217,6 +217,9 @@ class BaseTrainer:
                     continue
                 else:
                     raise e
+                
+            # print(f"Batch {batch_idx}")
+            # print(batch)
 
             self.train_metrics.update("grad_norm", self._get_grad_norm())
 
