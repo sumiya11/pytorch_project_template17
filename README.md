@@ -2,8 +2,7 @@
 
 0. Authors: Alexander Demin
 1. Git: https://github.com/sumiya11/pytorch_project_template
-2. Wandb:
-3. Report: report.pdf
+2. Wandb: https://wandb.ai/asdemin_2/pytorch_template, https://wandb.ai/asdemin_2/uncategorized
 
 - Audio-visual model: src/model/audiovideo_model.py
 - Dataset: src/datasets/audio_video.py
@@ -17,15 +16,24 @@ Run the following command to install dependencies:
 pip install -r requirements.txt
 ```
 
-The project requires two pretrained models:
+To run inference, we require two pretrained models:
 
-- Run the following command to download the lipreading model (repository https://github.com/mpc001/Lipreading_using_Temporal_Convolutional_Networks)
--
-https://drive.google.com/file/d/1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD/view
+- Run the following command to download the model from the lipreading repository (https://github.com/mpc001/Lipreading_using_Temporal_Convolutional_Networks) 
 
-- Run the following command to download the audio-visual model weights
+```
+wget -O lrw_resnet18_mstcn_video.pth https://drive.usercontent.google.com/download?id=1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD&export=download&authuser=0&confirm=t&uuid=42e09d57-a34f-4548-8fe1-f1db4faf63c5&at=AENtkXZNrbBIkwkPGA5bAJPli6y4%3A1732306916817
+```
 
-https://drive.google.com/file/d/1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD/view
+Or get it from
+https://drive.google.com/file/d/1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD/view.
+
+- Run the following command to download the audio-visual model
+
+```
+wget -O model_best.pth "https://drive.usercontent.google.com/download?id=1tvGpKinspMGntYA7bTMaQu4OvckEu0O9&export=download&authuser=0&confirm=t&uuid=33356cac-3147-4a97-a864-2a4bd9af7a1f&at=AENtkXbG2wmhIc7Kk4jOgiOk2bZs%3A1732306328011"
+```
+
+or get it from https://drive.google.com/file/d/1tvGpKinspMGntYA7bTMaQu4OvckEu0O9/view.
 
 ## Usage example
 
@@ -34,7 +42,7 @@ The project comes with a pretrained model.
 - Run the following command to run inference:
 
 ```
-python inference.py --config-name inference2 dataloader.batch_size=1 inferencer.from_pretrained=saved/model_best_10.pth
+python inference.py --config-name inference2 dataloader.batch_size=1 inferencer.from_pretrained="model_best.pth" model.video.path="lrw_resnet18_mstcn_video.pth" dataset.train.dir="PATH/TO/DLA_DATASET" dataset.val.dir="PATH/TO/DLA_DATASET" dataset.test.dir="PATH/TO/DLA_DATASET"
 ```
 
 Inference results are saved in `data/saved/example/test/`.

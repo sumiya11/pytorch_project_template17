@@ -13,7 +13,7 @@ video:
     width_mult: 1.0
     use_boundary: False
     extract_feats: True
-  path: "pretrained/lrw_resnet18_mstcn_video.pth"
+  path: "lrw_resnet18_mstcn_video.pth"
 audio:
   _target_: src.model.ConvTasNetModel
   enc_dim: 512      # 512
