@@ -60,7 +60,11 @@ class Inferencer(BaseTrainer):
         self.batch_transforms = batch_transforms
 
         # define dataloaders
-        self.evaluation_dataloaders = {k: v for k, v in dataloaders.items()}
+        self.evaluation_dataloaders = {
+            k: v for k, v in dataloaders.items() if k == "test"
+        }
+
+        print(self.evaluation_dataloaders)
 
         # path definition
 
@@ -70,7 +74,7 @@ class Inferencer(BaseTrainer):
         self.metrics = metrics
         if self.metrics is not None:
             self.evaluation_metrics = MetricTracker(
-                *[m.name for m in self.metrics["inference"]],
+                *[m.name for m in self.metrics["test"]],
                 writer=None,
             )
         else:
@@ -123,7 +127,7 @@ class Inferencer(BaseTrainer):
         batch.update(outputs)
 
         if metrics is not None:
-            for met in self.metrics["inference"]:
+            for met in self.metrics["test"]:
                 metrics.update(met.name, met(**batch))
 
         # Some saving logic. This is an example
@@ -139,16 +143,14 @@ class Inferencer(BaseTrainer):
             # label = batch["labels"][i].clone()
             # pred_label = logits.argmax(dim=-1)
 
-            output_id = str(int(batch['speaker1'][i].item())) + "_" + str(int(batch['speaker2'][i].item()))
+            output_id = (
+                str(int(batch["speaker1"][i])) + "_" + str(int(batch["speaker2"][i]))
+            )
 
             outputs = {
-                "unmixed": batch['unmixed'],
-                "mixed": batch['mixed'],
-                "signal1": batch['signal1'],
-                "signal2": batch['signal2'],
-                "sr": batch['sr'],
-                'speaker1': batch['speaker1'],
-                'speaker2': batch['speaker2']
+                "unmixed": batch["unmixed"].clone(),
+                "mixed": batch["mixed"].clone(),
+                "sr": batch["sr"].clone(),
             }
 
             if self.save_path is not None:

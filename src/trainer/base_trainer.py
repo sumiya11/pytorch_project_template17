@@ -5,6 +5,7 @@ from numpy import inf
 from torch.nn.utils import clip_grad_norm_
 from tqdm.auto import tqdm
 
+import wandb
 from src.datasets.data_utils import inf_loop
 from src.metrics.tracker import MetricTracker
 from src.utils.io_utils import ROOT_PATH
@@ -28,6 +29,7 @@ class BaseTrainer:
         logger,
         writer,
         epoch_len=None,
+        eval_len=None,
         skip_oom=True,
         batch_transforms=None,
     ):
@@ -81,9 +83,10 @@ class BaseTrainer:
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
             self.epoch_len = epoch_len
+        self.eval_len = eval_len
 
         self.evaluation_dataloaders = {
-            k: v for k, v in dataloaders.items() if k != "train"
+            k: v for k, v in dataloaders.items() if k != "train" and k != "test"
         }
 
         # define epochs
@@ -170,6 +173,12 @@ class BaseTrainer:
             logs = {"epoch": epoch}
             logs.update(result)
 
+            if self.lr_scheduler is not None:
+                self.lr_scheduler.step(result["loss"])
+                logs.update(
+                    {"lr": [group["lr"] for group in self.optimizer.param_groups][0]}
+                )
+
             # print logged information to the screen
             for key, value in logs.items():
                 self.logger.info(f"    {key:15s}: {value}")
@@ -203,7 +212,7 @@ class BaseTrainer:
         self.writer.set_step((epoch - 1) * self.epoch_len)
         self.writer.add_scalar("epoch", epoch)
         for batch_idx, batch in enumerate(
-            tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
+            pbar := tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
         ):
             try:
                 batch = self.process_batch(
@@ -217,7 +226,7 @@ class BaseTrainer:
                     continue
                 else:
                     raise e
-                
+
             # print(f"Batch {batch_idx}")
             # print(batch)
 
@@ -226,15 +235,22 @@ class BaseTrainer:
             # log current results
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
+                pbar.set_postfix_str(
+                    "Loss: {:.2f}, SNR: {:2f}".format(
+                        batch["loss"].item(), self.train_metrics.avg("train_SNR")
+                    )
+                )
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
                         epoch, self._progress(batch_idx), batch["loss"].item()
                     )
                 )
                 self.writer.add_scalar(
-                    "learning rate", self.lr_scheduler.get_last_lr()[0]
+                    "learning rate",
+                    [group["lr"] for group in self.optimizer.param_groups][0],
                 )
                 self._log_scalars(self.train_metrics)
+                self._log_audio(batch)
                 self._log_batch(batch_idx, batch)
                 # we don't want to reset train metrics at the start of every epoch
                 # because we are interested in recent train metrics
@@ -270,12 +286,14 @@ class BaseTrainer:
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
                 desc=part,
-                total=len(dataloader),
+                total=self.eval_len if self.eval_len is not None else len(dataloader),
             ):
                 batch = self.process_batch(
                     batch,
                     metrics=self.evaluation_metrics,
                 )
+                if self.eval_len is not None and batch_idx > self.eval_len:
+                    break
             self.writer.set_step(epoch * self.epoch_len, part)
             self._log_scalars(self.evaluation_metrics)
             self._log_batch(
@@ -453,6 +471,20 @@ class BaseTrainer:
             return
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
+
+    def _log_audio(self, batch):
+        if self.writer is None:
+            return
+        columns = ["title", "signal"]
+        sr = batch["sr"][0].item()
+        data = [
+            ["src1", wandb.Audio(batch["signal1"][0, 0, :].cpu().detach(), sr)],
+            ["src2", wandb.Audio(batch["signal2"][0, 0, :].cpu().detach(), sr)],
+            ["mixed", wandb.Audio(batch["mixed"][0, 0, :].cpu().detach(), sr)],
+            ["sep1", wandb.Audio(batch["unmixed"][0, 0, :].cpu().detach(), sr)],
+            ["sep2", wandb.Audio(batch["unmixed"][0, 1, :].cpu().detach(), sr)],
+        ]
+        wandb.log({"separation": wandb.Table(columns=columns, data=data)})
 
     def _save_checkpoint(self, epoch, save_best=False, only_best=False):
         """

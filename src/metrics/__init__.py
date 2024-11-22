@@ -1,2 +1,2 @@
+from src.metrics.audio import SDRMetric, SomeMetric
 from src.metrics.example import ExampleMetric
-from src.metrics.audio import MSEMetric, SNRMetric

@@ -1,25 +1,62 @@
 device: "auto"
 train: # metrics that are calculated during training
-  - _target_: src.metrics.MSEMetric
+  - _target_: src.metrics.SomeMetric
     metric:
       _target_: torch.nn.MSELoss
       reduction: "sum"
     device: ${metrics.device}
-    name: "TRAIN_MSE" # just an example to see difference
-  - _target_: src.metrics.SNRMetric
+    name: "train_MSE"
+  - _target_: src.metrics.SomeMetric
     metric:
       _target_: torchmetrics.audio.SignalNoiseRatio
     device: ${metrics.device}
-    name: "TRAIN_SNR" # just an example to see difference
+    name: "train_SNR"
+  - _target_: src.metrics.SDRMetric
+    name: "train_SDR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalDistortionRatio
+    device: ${metrics.device}
+    name: "train_SI_SDR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalNoiseRatio
+    device: ${metrics.device}
+    name: "train_SI_SNR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ShortTimeObjectiveIntelligibility
+      fs: 16000
+    device: ${metrics.device}
+    name: "train_STOI"
 inference: # metrics that are calculated during inference (eval)
-  - _target_: src.metrics.MSEMetric
+  - _target_: src.metrics.SomeMetric
     metric:
       _target_: torch.nn.MSELoss
       reduction: "sum"
     device: ${metrics.device}
-    name: "MSE" # just an example to see difference
-  - _target_: src.metrics.SNRMetric
+    name: "MSE"
+  - _target_: src.metrics.SomeMetric
     metric:
       _target_: torchmetrics.audio.SignalNoiseRatio
     device: ${metrics.device}
-    name: "SNR" # just an example to see difference
+    name: "SNR"
+  - _target_: src.metrics.SDRMetric
+    name: "SDR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalDistortionRatio
+    device: ${metrics.device}
+    name: "SI_SDR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalNoiseRatio
+    device: ${metrics.device}
+    name: "SI_SNR"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ShortTimeObjectiveIntelligibility
+      fs: 16000
+    device: ${metrics.device}
+    name: "STOI"
+test: {} # metrics that are calculated during inference (eval)

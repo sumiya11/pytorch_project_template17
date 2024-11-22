@@ -1,0 +1,5 @@
+metrics:
+  _target_: src.datasets.MetricsCalculatorDataset
+  dir_separated: C:/Users/maxro/pytorch_project_template/data/saved/example/test
+  dir_ground_truth: C:/Users/maxro/pytorch_project_template/data/saved/example/gt
+  transform: ${transforms.instance_transforms.metrics}

@@ -1,0 +1,5 @@
+_target_: src.loss.PIT_Loss
+metric_func:
+  _target_: torchmetrics.audio.SignalDistortionRatio
+mode: "speaker-wise"
+eval_func: "max"

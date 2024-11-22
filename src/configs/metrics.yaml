@@ -1,0 +1,10 @@
+defaults:
+  - metrics: audio
+  - datasets: metrics # we do not want to run inference on training data
+  - dataloader: example
+  - transforms: audio
+  - _self_
+inferencer:
+  device_tensors: ["unmixed", "signal1", "signal2"] # which tensors should be on device (ex. GPU)
+  device: auto # device name or "auto"
+  seed: 1

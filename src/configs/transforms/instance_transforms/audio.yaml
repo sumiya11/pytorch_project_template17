@@ -1,6 +1,106 @@
 train:
-  mixed: # name of the tensor on which we apply transform
+  video1:
     _target_: torchvision.transforms.v2.Compose
     transforms:
-      - _target_: torch.nn.Identity
-inference: null
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 96]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  video2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 120]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  signal1:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+  signal2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+  mixed:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+inference:
+  video1:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 96]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  video2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 96]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  signal1:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+  signal2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+  mixed:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+test:
+  video1:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 96]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  video2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      # - _target_: src.model.lipreading.preprocess.Normalize
+      #   mean: 0.0
+      #   std: 255.0
+      - _target_: src.model.lipreading.preprocess.CenterCrop
+        size: [96, 96]
+      - _target_: src.model.lipreading.preprocess.Normalize
+        mean: 0.421   # taken from lipreading
+        std: 0.165
+  mixed:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+metrics:
+  signal1:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance
+  signal2:
+    _target_: torchvision.transforms.v2.Compose
+    transforms:
+      - _target_: src.model.lipreading.preprocess.NormalizeUtterance

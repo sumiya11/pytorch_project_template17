@@ -1,8 +1,9 @@
+import logging
+import os
 import warnings
 
 import hydra
 import torch
-import logging
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
@@ -30,11 +31,12 @@ def main(config):
     logger = setup_saving_and_logging(config)
     writer = instantiate(config.writer, logger, project_config)
 
+    logger.info(f"Running from {os.getcwd()}")
+
     if config.trainer.device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
     else:
         device = config.trainer.device
-
 
     print(device)
 
@@ -58,9 +60,15 @@ def main(config):
     optimizer = instantiate(config.optimizer, params=trainable_params)
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
 
+    print(optimizer)
+    print(lr_scheduler)
+
     # epoch_len = number of iterations for iteration-based training
     # epoch_len = None or len(dataloader) for epoch-based training
     epoch_len = config.trainer.get("epoch_len")
+    eval_len = config.trainer.get("eval_len")
+
+    skip_oom = config.trainer.get("skip_oom")
 
     trainer = Trainer(
         model=model,
@@ -69,13 +77,14 @@ def main(config):
         optimizer=optimizer,
         lr_scheduler=lr_scheduler,
         config=config,
+        skip_oom=skip_oom,
         device=device,
         dataloaders=dataloaders,
         epoch_len=epoch_len,
+        eval_len=eval_len,
         logger=logger,
         writer=writer,
         batch_transforms=batch_transforms,
-        skip_oom=config.trainer.get("skip_oom", True),
     )
 
     trainer.train()

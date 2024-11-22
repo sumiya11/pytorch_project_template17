@@ -1,0 +1,11 @@
+_target_: src.model.lipreading.model.Lipreading
+modality: "video"
+hidden_dim: 256
+backbone_type: "resnet"
+num_classes: 500
+relu_type: "swish"
+tcn_options: {'num_layers': 4, 'kernel_size': [3, 5, 7], 'dropout': 0.2, 'dwpw': False, 'width_mult': 1}
+densetcn_options: {}
+width_mult: 1.0
+use_boundary: False
+extract_feats: True

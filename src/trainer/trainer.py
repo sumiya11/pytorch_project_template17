@@ -40,6 +40,8 @@ class Trainer(BaseTrainer):
         outputs = self.model(**batch)
         batch.update(outputs)
 
+        # print(batch['speaker1'], batch['speaker2'], end=', ')
+
         # print("\n\n_____Model outputs: ")
         # print(outputs)
 
@@ -55,8 +57,6 @@ class Trainer(BaseTrainer):
             batch["loss"].backward()  # sum of all losses is always called loss
             self._clip_grad_norm()
             self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
 
         # update metrics for each loss (in case of multiple losses)
         for loss_name in self.config.writer.loss_names:

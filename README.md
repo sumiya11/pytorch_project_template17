@@ -1,26 +1,59 @@
-# PyTorch Template for DL projects
+# DLA Project Homework
 
-<p align="center">
-  <a href="#about">About</a> •
-  <a href="#tutorials">Tutorials</a> •
-  <a href="#examples">Examples</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#how-to-use">How To Use</a> •
-  <a href="#useful-links">Useful Links</a> •
-  <a href="#credits">Credits</a> •
-  <a href="#license">License</a>
-</p>
+0. Authors: Alexander Demin
+1. Git: https://github.com/sumiya11/pytorch_project_template
+2. Wandb:
+3. Report: report.pdf
 
-<p align="center">
-<a href="https://github.com/Blinorot/pytorch_project_template/generate">
-  <img src="https://img.shields.io/badge/use%20this-template-green?logo=github">
-</a>
-<a href="https://github.com/Blinorot/pytorch_project_template/blob/main/LICENSE">
-   <img src=https://img.shields.io/badge/license-MIT-blue.svg>
-</a>
-</p>
+- Audio-visual model: src/model/audiovideo_model.py
+- Dataset: src/datasets/audio_video.py
+- SI-SNR on validation: 10.20.
 
-## About
+## Installation
+
+Run the following command to install dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+The project requires two pretrained models:
+
+- Run the following command to download the lipreading model (repository https://github.com/mpc001/Lipreading_using_Temporal_Convolutional_Networks)
+-
+https://drive.google.com/file/d/1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD/view
+
+- Run the following command to download the audio-visual model weights
+
+https://drive.google.com/file/d/1vqMpxZ5LzJjg50HlZdj_QFJGm2gQmDUD/view
+
+## Usage example
+
+The project comes with a pretrained model.
+
+- Run the following command to run inference:
+
+```
+python inference.py --config-name inference2 dataloader.batch_size=1 inferencer.from_pretrained=saved/model_best_10.pth
+```
+
+Inference results are saved in `data/saved/example/test/`.
+
+- After inference, run the following command to calculate metrics:
+
+```
+python metrics.py --config-name metrics
+```
+
+- (Optional) After inference, run the following command to produce output wav files:
+
+```
+python translate.py data/saved/example/test/ PATH/TO/OUTPUT/WAV
+```
+
+The maximal memory usage on GPU is around 1 GB.
+
+<!-- ## About
 
 This repository contains a template for [PyTorch](https://pytorch.org/)-based Deep Learning projects.
 
@@ -127,7 +160,7 @@ You may find the following links useful:
 
 - [Mamba](https://github.com/mamba-org/mamba) and [Poetry](https://python-poetry.org/): alternatives to [Conda](https://conda.io/projects/conda/en/latest/user-guide/getting-started.html) and [pip](https://pip.pypa.io/en/stable/installation/) package managers given above.
 
-- [Awesome README](https://github.com/matiassingers/awesome-readme): a list of awesome README files for inspiration. Check the basics [here](https://github.com/PurpleBooth/a-good-readme-template).
+- [Awesome README](https://github.com/matiassingers/awesome-readme): a list of awesome README files for inspiration. Check the basics [here](https://github.com/PurpleBooth/a-good-readme-template). -->
 
 ## Credits
 

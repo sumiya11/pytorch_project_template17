@@ -1,5 +1,15 @@
 train:
   _target_: src.datasets.AudioVideoDataset
-  dir: D:\Downloads_2\dla_dataset\
+  dir: C:\Downloads_2\dla_dataset\
   mode: train
-  transform: null
+  transform: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.AudioVideoDataset
+  dir: C:\Downloads_2\dla_dataset\
+  mode: val
+  transform: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.AudioVideoDataset
+  dir: C:\Downloads_2\dla_dataset\
+  mode: test
+  transform: ${transforms.instance_transforms.test}
