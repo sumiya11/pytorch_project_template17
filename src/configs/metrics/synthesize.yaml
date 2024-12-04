@@ -1,0 +1,26 @@
+device: "auto"
+train: # metrics that are calculated during training
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torch.nn.MSELoss
+      reduction: "sum"
+    device: ${metrics.device}
+    name: "train_MSE"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalNoiseRatio
+    device: ${metrics.device}
+    name: "train_SI_SNR"
+inference: # metrics that are calculated during inference (eval)
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torch.nn.MSELoss
+      reduction: "sum"
+    device: ${metrics.device}
+    name: "MSE"
+  - _target_: src.metrics.SomeMetric
+    metric:
+      _target_: torchmetrics.audio.ScaleInvariantSignalNoiseRatio
+    device: ${metrics.device}
+    name: "SI_SNR"
+  

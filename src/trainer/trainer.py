@@ -1,6 +1,9 @@
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
+from src.model.hifi_gan import PRINT_VERSIONS
 
+import torch
+torch.autograd.set_detect_anomaly(True)
 
 class Trainer(BaseTrainer):
     """
@@ -32,27 +35,75 @@ class Trainer(BaseTrainer):
         metric_funcs = self.metrics["inference"]
         if self.is_train:
             metric_funcs = self.metrics["train"]
-            self.optimizer.zero_grad()
-
-        outputs = self.model(**batch)
+        
+        outputs = self.model(batch)
         batch.update(outputs)
 
-        all_losses = self.criterion(**batch)
-        batch.update(all_losses)
+        losses = self.model.losses(batch)
+        batch.update(losses)
+
+        print("\n\n=============== outputs in log_stuff() ================")
+        for k, v in outputs.items():
+            try:
+                print(f"  {k:23}:   {v.shape}")
+            except:
+                try:
+                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
+                except:
+                    print(f"  {k:23}:   {type(v)}")
+
+        print("\n\n=============== losses in log_stuff() ================")
+        for k, v in losses.items():
+            try:
+                print(f"  {k:23}:   {v.shape}")
+            except:
+                try:
+                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
+                except:
+                    print(f"  {k:23}:   {type(v)}")
+        
+        print("\n\n=============== batch in log_stuff() ================")
+        for k, v in batch.items():
+            try:
+                print(f"  {k:23}:   {v.shape}")
+            except:
+                try:
+                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
+                except:
+                    print(f"  {k:23}:   {type(v)}")
 
         if self.is_train:
-            batch["loss"].backward()  # sum of all losses is always called loss
+            if PRINT_VERSIONS:
+                print ('versions:')
+                print ('  loss_gen:', batch["loss_gen"]._version)
+                print ('  loss_disc:', batch["loss_disc"]._version)
+
+            self.optimizer[0].zero_grad()
+            batch["loss_gen"].backward(retain_graph=True)
             self._clip_grad_norm()
-            self.optimizer.step()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+            self.optimizer[0].step()
+
+            if PRINT_VERSIONS:
+                print ('versions:')
+                print ('  loss_gen:', batch["loss_gen"]._version)
+                print ('  loss_disc:', batch["loss_disc"]._version)
+            
+            self.optimizer[1].zero_grad()
+            batch["loss_disc"].backward()
+            self._clip_grad_norm()
+            self.optimizer[1].step()
+            
+            # if self.lr_scheduler is not None:
+            #     self.lr_scheduler[0].step()
+            #     self.lr_scheduler[1].step()
 
         # update metrics for each loss (in case of multiple losses)
         for loss_name in self.config.writer.loss_names:
             metrics.update(loss_name, batch[loss_name].item())
 
         for met in metric_funcs:
-            metrics.update(met.name, met(**batch))
+            metrics.update(met.name, met(batch))
+
         return batch
 
     def _log_batch(self, batch_idx, batch, mode="train"):

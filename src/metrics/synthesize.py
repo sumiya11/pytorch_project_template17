@@ -3,7 +3,7 @@ import torch
 from src.metrics.base_metric import BaseMetric
 
 
-class ExampleMetric(BaseMetric):
+class SomeMetric(BaseMetric):
     def __init__(self, metric, device, *args, **kwargs):
         """
         Example of a nested metric class. Applies metric function
@@ -21,7 +21,10 @@ class ExampleMetric(BaseMetric):
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.metric = metric.to(device)
 
-    def __call__(self, logits: torch.Tensor, labels: torch.Tensor, **kwargs):
+    def __call__(
+        self,
+        batch
+    ):
         """
         Metric calculation logic.
 
@@ -31,5 +34,5 @@ class ExampleMetric(BaseMetric):
         Returns:
             metric (float): calculated metric.
         """
-        classes = logits.argmax(dim=-1)
-        return self.metric(classes, labels)
+
+        return self.metric(batch['signal_hat'], batch['signal_gt'])

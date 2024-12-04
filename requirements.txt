@@ -8,6 +8,8 @@ pandas
 wandb
 comet_ml
 hydra-core
+hparams
+pandas
 
 black
 isort

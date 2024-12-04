@@ -1,0 +1,9 @@
+_target_: src.model.Synthesizer
+mel_cfg:
+  _target_: src.model.MelSpectrogramConfig
+hifi_cfg:
+  _target_: src.model.HiFiConfig
+pace: 1.0
+speaker: 0
+cmudict_path: "cmudict-0.7b"
+heteronyms_path: "heteronyms"

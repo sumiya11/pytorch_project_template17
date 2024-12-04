@@ -1,0 +1,14 @@
+train:
+  _target_: src.datasets.LJSpeech
+  dir: C:\Downloads_2\LJSpeech-1.1
+  mode: train
+  hifi_config:
+    _target_: src.model.HiFiConfig
+  transform: null
+val:
+  _target_: src.datasets.LJSpeech
+  dir: C:\Downloads_2\LJSpeech-1.1
+  mode: val
+  hifi_config:
+    _target_: src.model.HiFiConfig
+  transform: null

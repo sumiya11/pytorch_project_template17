@@ -1,5 +1,6 @@
 import warnings
 
+import itertools
 import hydra
 import torch
 from hydra.utils import instantiate
@@ -10,7 +11,6 @@ from src.trainer import Trainer
 from src.utils.init_utils import set_random_seed, setup_saving_and_logging
 
 warnings.filterwarnings("ignore", category=UserWarning)
-
 
 @hydra.main(version_base=None, config_path="src/configs", config_name="baseline")
 def main(config):
@@ -42,28 +42,44 @@ def main(config):
     logger.info(model)
 
     # get function handles of loss and metrics
-    loss_function = instantiate(config.loss_function).to(device)
+    # loss_function = instantiate(config.loss_function).to(device)
     metrics = instantiate(config.metrics)
 
     # build optimizer, learning rate scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = instantiate(config.optimizer, params=trainable_params)
-    lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
+    generator_params = list(filter(
+        lambda p: p.requires_grad, 
+        model.vocoder.generator.parameters()
+    ))
+    # print("GP", generator_params)
+    generator_optimizer = instantiate(config.optimizer, params=generator_params)
+    generator_lr_scheduler = instantiate(config.lr_scheduler, optimizer=generator_optimizer)
+
+    discriminator_params = list(filter(
+        lambda p: p.requires_grad,
+        itertools.chain(model.vocoder.msd.parameters(), model.vocoder.mpd.parameters())
+    ))
+    # print("DP", discriminator_params)
+
+    discriminator_optimizer = instantiate(config.optimizer, params=discriminator_params)
+    discriminator_lr_scheduler = instantiate(config.lr_scheduler, optimizer=discriminator_optimizer)
+
 
     # epoch_len = number of iterations for iteration-based training
     # epoch_len = None or len(dataloader) for epoch-based training
     epoch_len = config.trainer.get("epoch_len")
+    eval_len = config.trainer.get("eval_len")
 
     trainer = Trainer(
         model=model,
-        criterion=loss_function,
+        # criterion=loss_function,
         metrics=metrics,
-        optimizer=optimizer,
-        lr_scheduler=lr_scheduler,
+        optimizer=(generator_optimizer, discriminator_optimizer),
+        lr_scheduler=(generator_lr_scheduler, discriminator_lr_scheduler),
         config=config,
         device=device,
         dataloaders=dataloaders,
         epoch_len=epoch_len,
+        eval_len=eval_len,
         logger=logger,
         writer=writer,
         batch_transforms=batch_transforms,

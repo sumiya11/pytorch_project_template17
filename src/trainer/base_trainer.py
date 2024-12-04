@@ -1,5 +1,6 @@
 from abc import abstractmethod
 
+import wandb
 import torch
 from numpy import inf
 from torch.nn.utils import clip_grad_norm_
@@ -18,7 +19,7 @@ class BaseTrainer:
     def __init__(
         self,
         model,
-        criterion,
+        # criterion,
         metrics,
         optimizer,
         lr_scheduler,
@@ -28,6 +29,7 @@ class BaseTrainer:
         logger,
         writer,
         epoch_len=None,
+        eval_len=None,
         skip_oom=True,
         batch_transforms=None,
     ):
@@ -67,7 +69,7 @@ class BaseTrainer:
         self.log_step = config.trainer.get("log_step", 50)
 
         self.model = model
-        self.criterion = criterion
+        # self.criterion = criterion
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.batch_transforms = batch_transforms
@@ -81,6 +83,11 @@ class BaseTrainer:
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
             self.epoch_len = epoch_len
+        
+        if eval_len is None:
+            self.eval_len = len(dataloaders["val"])
+        else:
+            self.eval_len = eval_len
 
         self.evaluation_dataloaders = {
             k: v for k, v in dataloaders.items() if k != "train"
@@ -170,6 +177,16 @@ class BaseTrainer:
             logs = {"epoch": epoch}
             logs.update(result)
 
+            if self.lr_scheduler is not None:
+                self.lr_scheduler[0].step()
+                self.lr_scheduler[1].step()
+                logs.update(
+                    {"lr_gen": [group["lr"] for group in self.optimizer[0].param_groups][0]}
+                )
+                logs.update(
+                    {"lr_disc": [group["lr"] for group in self.optimizer[1].param_groups][0]}
+                )
+
             # print logged information to the screen
             for key, value in logs.items():
                 self.logger.info(f"    {key:15s}: {value}")
@@ -203,7 +220,7 @@ class BaseTrainer:
         self.writer.set_step((epoch - 1) * self.epoch_len)
         self.writer.add_scalar("epoch", epoch)
         for batch_idx, batch in enumerate(
-            tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
+            pbar := tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
         ):
             try:
                 batch = self.process_batch(
@@ -223,15 +240,28 @@ class BaseTrainer:
             # log current results
             if batch_idx % self.log_step == 0:
                 self.writer.set_step((epoch - 1) * self.epoch_len + batch_idx)
-                self.logger.debug(
-                    "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx), batch["loss"].item()
+                pbar.set_postfix_str(
+                    "Loss: {:.2f} (gen.), {:.2f} (disc.), MSE: {:.2f}".format(
+                        batch["loss_gen"].item(), 
+                        batch["loss_disc"].item(),
+                        self.train_metrics.avg("train_MSE")
                     )
                 )
+                # self.logger.debug(
+                #     "Train Epoch: {} {} Loss: {:.6f}".format(
+                #         epoch, self._progress(batch_idx), batch["loss"].item()
+                #     )
+                # )
                 self.writer.add_scalar(
-                    "learning rate", self.lr_scheduler.get_last_lr()[0]
+                    "learning rate (generator)",
+                    [group["lr"] for group in self.optimizer[0].param_groups][0],
+                )
+                self.writer.add_scalar(
+                    "learning rate (discriminator)",
+                    [group["lr"] for group in self.optimizer[1].param_groups][0],
                 )
                 self._log_scalars(self.train_metrics)
+                self._log_stuff(batch)
                 self._log_batch(batch_idx, batch)
                 # we don't want to reset train metrics at the start of every epoch
                 # because we are interested in recent train metrics
@@ -267,12 +297,14 @@ class BaseTrainer:
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
                 desc=part,
-                total=len(dataloader),
+                total=self.eval_len,
             ):
                 batch = self.process_batch(
                     batch,
                     metrics=self.evaluation_metrics,
                 )
+                if batch_idx > self.eval_len:
+                    break
             self.writer.set_step(epoch * self.epoch_len, part)
             self._log_scalars(self.evaluation_metrics)
             self._log_batch(
@@ -451,6 +483,54 @@ class BaseTrainer:
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
 
+    def _log_stuff(self, batch):
+        """
+        Wrapper around the writer 'add_scalar' to log all metrics.
+
+        Args:
+            metric_tracker (MetricTracker): calculated metrics.
+        """
+        # print("\n\n=============== batch in log_stuff() ================")
+        # for k, v in batch.items():
+        #     try:
+        #         print(f"  {k:23}:   {v.shape}")
+        #     except:
+        #         try:
+        #             print(f"  {k:23}:   {[v_.shape for v_ in v]}")
+        #         except:
+        #             print(f"  {k:23}:   {type(v)}")
+        if self.writer is None:
+            return
+        
+        B = len(batch["transcript"])
+        
+        columns = ["transcript", "normalized_transcript"]
+        data = [
+            [batch["transcript"][i], batch["normalized_transcript"][i]] 
+            for i in range(B)
+        ]
+        wandb.log({"transcript": wandb.Table(columns=columns, data=data)})
+
+        columns = ["signal_gt", "signal_hat", 
+                   #"reference"
+                   ]
+        sr = batch["sr"][0].item()
+        data = [
+            [wandb.Audio(batch["signal_gt"][i, 0, :].cpu().detach(), sr), wandb.Audio(batch["signal_hat"][i, 0, :].cpu().detach(), sr), 
+             # wandb.Audio(batch["reference"][i, 0, :].cpu().detach(), sr)
+             ]
+            for i in range(B)
+        ]
+        wandb.log({"signal": wandb.Table(columns=columns, data=data)})
+
+        columns = ["mel_gt", "mel", "mel_hat"]
+        data = [
+            [wandb.Image(batch["mel_gt"][i, :, :].cpu().detach()), wandb.Image(batch["mel"][i, :, :].cpu().detach()), wandb.Image(batch["mel_hat"][i, :, :].cpu().detach())]
+            for i in range(B)
+        ]
+        wandb.log({"mel": wandb.Table(columns=columns, data=data)})
+
+
     def _save_checkpoint(self, epoch, save_best=False, only_best=False):
         """
         Save the checkpoints.
@@ -467,8 +547,10 @@ class BaseTrainer:
             "arch": arch,
             "epoch": epoch,
             "state_dict": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "lr_scheduler": self.lr_scheduler.state_dict(),
+            "generator_optimizer": self.optimizer[0].state_dict(),
+            "discriminator_optimizer": self.optimizer[1].state_dict(),
+            "generator_lr_scheduler": self.lr_scheduler[0].state_dict(),
+            "discriminator_lr_scheduler": self.lr_scheduler[1].state_dict(),
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
@@ -522,8 +604,10 @@ class BaseTrainer:
                 "are not resumed."
             )
         else:
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
+            self.optimizer[0].load_state_dict(checkpoint["generator_optimizer"])
+            self.lr_scheduler[0].load_state_dict(checkpoint["generator_lr_scheduler"])
+            self.optimizer[1].load_state_dict(checkpoint["discriminator_optimizer"])
+            self.lr_scheduler[1].load_state_dict(checkpoint["discriminator_lr_scheduler"])
 
         self.logger.info(
             f"Checkpoint loaded. Resume training from epoch {self.start_epoch}"
