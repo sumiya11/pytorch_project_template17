@@ -3,7 +3,7 @@
 0. Authors: Alexander Demin
 1. Git: https://github.com/sumiya11/pytorch_project_template17 (branch hwhw3)
 2. Wandb: https://wandb.ai/asdemin_2/pytorch_template
-3. Report: 
+3. Report: REPORT.md
 
 ## Installation
 
@@ -35,7 +35,7 @@ The command takes texts from `PATH/TO/TXT`, generates MELs and audios, and puts 
 - To run **speech-to-speech** synthesizer:
 
 ```
-python.exe synthesize2.py --config-name synthesize2 datasets.uwu.dir="PATH/TO/WAV" synthesizer.from_pretrained="PATH/TO/MODEL.pth" synthesizer.save_path="example2"
+python synthesize2.py --config-name synthesize2 datasets.uwu.dir="PATH/TO/WAV" synthesizer.from_pretrained="PATH/TO/MODEL.pth" synthesizer.save_path="example2"
 ```
 
 The command takes wavs from `PATH/TO/WAV`, generates MELs and audios, and puts the results to `PATH/TO/RESULTS`. 
