@@ -1,0 +1,3 @@
+uwu:
+  _target_: src.datasets.CustomDirDataset2
+  dir: C:\Users\maxro\hw3\pytorch_project_template\data

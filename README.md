@@ -1,3 +1,53 @@
+# DLA Homework 3
+
+0. Authors: Alexander Demin
+1. Git: https://github.com/sumiya11/pytorch_project_template17 (branch hwhw3)
+2. Wandb: https://wandb.ai/asdemin_2/pytorch_template
+3. Report: 
+
+## Installation
+
+Run the following command to install dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+Run the following command to download our pretrained model (around 1 GB) 
+
+```
+wget -O model.pth "https://drive.usercontent.google.com/download?id=1LK5kyJ4i5UD36BfVfU9BDtUsywld4oSd&export=download&authuser=0&confirm=t&uuid=68f55b63-916c-401a-bdf9-c7409720ae57&at=APvzH3q4lW6aBtSd4mJB7_AA7z84:1733664192222"
+```
+
+Or get it from
+https://drive.google.com/file/d/1LK5kyJ4i5UD36BfVfU9BDtUsywld4oSd/view?usp=sharing.
+
+## Usage example
+
+- To run **text-to-speech** synthesizer:
+
+```
+python synthesize.py --config-name synthesize datasets.eval.dir="PATH/TO/TXT" model.from_pretrained_hifi="PATH/TO/MODEL.pth" synthesizer.save_path="PATH/TO/RESULTS"
+```
+
+The command takes texts from `PATH/TO/TXT`, generates MELs and audios, and puts the results to `PATH/TO/RESULTS`. 
+
+- To run **speech-to-speech** synthesizer:
+
+```
+python.exe synthesize2.py --config-name synthesize2 datasets.uwu.dir="PATH/TO/WAV" synthesizer.from_pretrained="PATH/TO/MODEL.pth" synthesizer.save_path="example2"
+```
+
+The command takes wavs from `PATH/TO/WAV`, generates MELs and audios, and puts the results to `PATH/TO/RESULTS`. 
+
+- To run **command_line-to-speech** synthesizer:
+
+```
+python synthesize2.py --config-name synthesize3 datasets.cli.text="It was a pleasure to burn" model.from_pretrained_hifi="PATH/TO/MODEL.pth" synthesizer.save_path="example3"
+```
+
+The command generates a wav file where a robot says "It was a pleasure to burn" and puts it into `PATH/TO/RESULTS` directory. 
+
 # PyTorch Template for DL projects
 
 <p align="center">

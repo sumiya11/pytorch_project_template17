@@ -1,0 +1,3 @@
+cli:
+  _target_: src.datasets.CustomDirDataset3
+  text: "Hello world."

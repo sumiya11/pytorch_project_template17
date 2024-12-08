@@ -16,3 +16,15 @@ eval:
   num_workers: 1
   pin_memory: True
   shuffle: False
+uwu:
+  _target_: torch.utils.data.DataLoader
+  batch_size: 1
+  num_workers: 1
+  pin_memory: True
+  shuffle: False
+cli:
+  _target_: torch.utils.data.DataLoader
+  batch_size: 1
+  num_workers: 1
+  pin_memory: True
+  shuffle: False

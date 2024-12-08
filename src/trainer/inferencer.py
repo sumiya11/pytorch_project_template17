@@ -6,6 +6,8 @@ from src.trainer.base_trainer import BaseTrainer
 
 import torchaudio
 
+SAMPLE_RATE = 22050
+
 class Inferencer(BaseTrainer):
     """
     Inferencer (Like Trainer but for Inference) class
@@ -145,7 +147,7 @@ class Inferencer(BaseTrainer):
                 torchaudio.save(
                     self.save_path / f"{id}.wav", 
                     wav, 
-                    sample_rate=self.model.vocoder.mel_cfg.sr
+                    sample_rate=SAMPLE_RATE
                 )
 
         return batch
