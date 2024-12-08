@@ -4,6 +4,7 @@ from tqdm.auto import tqdm
 from src.metrics.tracker import MetricTracker
 from src.trainer.base_trainer import BaseTrainer
 
+import torchaudio
 
 class Inferencer(BaseTrainer):
     """
@@ -48,11 +49,11 @@ class Inferencer(BaseTrainer):
                 Inferencer Class.
         """
         assert (
-            skip_model_load or config.inferencer.get("from_pretrained") is not None
+            skip_model_load or config.synthesizer.get("from_pretrained") is not None
         ), "Provide checkpoint or set skip_model_load=True"
 
         self.config = config
-        self.cfg_trainer = self.config.inferencer
+        self.cfg_trainer = self.config.synthesizer
 
         self.device = device
 
@@ -78,7 +79,7 @@ class Inferencer(BaseTrainer):
 
         if not skip_model_load:
             # init model
-            self._from_pretrained(config.inferencer.get("from_pretrained"))
+            self._from_pretrained(config.synthesizer.get("from_pretrained"))
 
     def run_inference(self):
         """
@@ -119,36 +120,33 @@ class Inferencer(BaseTrainer):
         batch = self.move_batch_to_device(batch)
         batch = self.transform_batch(batch)  # transform batch on device -- faster
 
-        outputs = self.model(**batch)
+        outputs = self.model(batch)
         batch.update(outputs)
 
-        if metrics is not None:
-            for met in self.metrics["inference"]:
-                metrics.update(met.name, met(**batch))
+        # if metrics is not None:
+        #     for met in self.metrics["inference"]:
+        #         metrics.update(met.name, met(batch))
 
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
-        current_id = batch_idx * batch_size
+        batch_size = len(batch["id"])
 
         for i in range(batch_size):
             # clone because of
             # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
 
-            output_id = current_id + i
 
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
+            id = batch['id'][i]
+            wav = batch['signal_hat'][i, :, :].cpu().clone()
 
             if self.save_path is not None:
                 # you can use safetensors or other lib here
-                torch.save(output, self.save_path / part / f"output_{output_id}.pth")
+                torchaudio.save(
+                    self.save_path / f"{id}.wav", 
+                    wav, 
+                    sample_rate=self.model.vocoder.mel_cfg.sr
+                )
 
         return batch
 

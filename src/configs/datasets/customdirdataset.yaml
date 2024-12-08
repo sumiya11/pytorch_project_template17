@@ -1,0 +1,3 @@
+eval:
+  _target_: src.datasets.CustomDirDataset 
+  dir: C:\Users\maxro\hw3\pytorch_project_template\data

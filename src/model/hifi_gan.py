@@ -9,6 +9,9 @@ Direct quotes from the paper are given by
 
     > Quote.
 
+Also we adapt some small parts of the code from the implementation:
+
+    > https://github.com/jik876/hifi-gan
 """
 
 import torch
@@ -24,16 +27,13 @@ import librosa
 
 from librosa.filters import mel as librosa_mel_fn
 
-def dynamic_range_compression_torch(x, C=1, clip_val=1e-5):
-    return torch.log(torch.clamp(x, min=clip_val) * C)
-
 '''
 > where we set λfm = 2 and λmel = 45.
 '''
 Lambda_Feature_Loss = 2
 Lambda_mel_loss = 45
 
-PRINT_VERSIONS = True
+PRINT_VERSIONS = False
 
 @dataclass
 class MelSpectrogramConfig:
@@ -64,7 +64,7 @@ class HiFiConfig:
     leaky_relu_slope = 0.1
 
     segment_size: int = 8192
-    MAX_WAV_VALUE = 1.0
+    MAX_WAV_VALUE = 32768
 
     
 class MelSpectrogram(nn.Module):
@@ -107,39 +107,8 @@ class MelSpectrogram(nn.Module):
         :return: Shape is [B, n_mels, T']
         """
 
-        print("mel forward: ", audio.shape)
-
-        # audio = torch.nn.functional.pad(audio.unsqueeze(1), (int((self.config.n_fft - self.config.hop_length)/2), int((self.config.n_fft - self.config.hop_length)/2)), mode='reflect')
-        # audio = audio.squeeze(1)
-
         mel = torch.log(torch.clamp(self.mel_spectrogram(audio), min=1e-5))
-
         return mel
-
-        # if self.config.fmax not in self.mel_basis:
-        #     mel = librosa.filters.mel(
-        #         sr=self.config.sr, 
-        #         n_fft=self.config.n_fft, 
-        #         n_mels=self.config.n_mels, 
-        #         fmin=self.config.fmin, 
-        #         fmax=self.config.fmax
-        #     )
-        #     self.mel_basis[str(self.config.fmax) + '_' + str(audio.device)] = torch.from_numpy(mel).float().to(audio.device)
-        #     self.hann_window[str(audio.device)] = torch.hann_window(self.config.win_length).to(audio.device)
-
-        # audio = torch.nn.functional.pad(audio, (int((self.config.n_fft - self.config.hop_length)/2), int((self.config.n_fft - self.config.hop_length)/2)), mode='reflect')
-        # # audio = audio.squeeze(1)
-
-        # spec = torch.stft(audio, self.config.n_fft, hop_length=self.config.hop_length, win_length=self.config.win_length, window=self.hann_window[str(audio.device)],
-        #                 center=False, pad_mode='reflect', normalized=False, onesided=True,
-        #                 return_complex=False)
-
-        # spec = torch.sqrt(spec.pow(2).sum(-1)+(1e-9))
-
-        # spec = torch.matmul(self.mel_basis[str(self.config.fmax)+'_'+str(audio.device)], spec)
-        # spec = dynamic_range_compression_torch(spec)
-
-        # return spec
 
 '''
 > Feature Matching Loss
@@ -245,6 +214,7 @@ class Generator(nn.Module):
         self.conv_pre = weight_norm(Conv1d(self.hifi_cfg.num_mels, self.hifi_cfg.upsample_initial_channel, 7, 1, padding=3))
 
         self.upsample = nn.ModuleList()
+
         for i, (rate, kernel) in enumerate(zip(self.hifi_cfg.upsample_rates, self.hifi_cfg.upsample_kernel_sizes)):
             conv = ConvTranspose1d(
                 in_channels=self.hifi_cfg.upsample_initial_channel // (2**i), 
@@ -308,10 +278,10 @@ class DiscriminatorP(nn.Module):
             norm(Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(padding(5, 1), 0))),
             norm(Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(padding(5, 1), 0))),
             norm(Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(padding(5, 1), 0))),
-            # norm(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(padding(5, 1), 0))),
-            # norm(Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(2, 0))),
+            norm(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(padding(5, 1), 0))),
+            norm(Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(2, 0))),
         ])
-        self.conv_post = norm(Conv2d(512, 1, (3, 1), 1, padding=(1, 0)))
+        self.conv_post = norm(Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
 
     def forward(self, x):
         '''
@@ -394,11 +364,11 @@ class DiscriminatorS(nn.Module):
             norm(Conv1d(128, 128, 41, 2, groups=4, padding=20)),
             norm(Conv1d(128, 256, 41, 2, groups=16, padding=20)),
             norm(Conv1d(256, 512, 41, 4, groups=16, padding=20)),
-            # norm(Conv1d(512, 1024, 41, 4, groups=16, padding=20)),
-            # norm(Conv1d(1024, 1024, 41, 1, groups=16, padding=20)),
-            # norm(Conv1d(1024, 1024, 5, 1, padding=2)),
+            norm(Conv1d(512, 1024, 41, 4, groups=16, padding=20)),
+            norm(Conv1d(1024, 1024, 41, 1, groups=16, padding=20)),
+            norm(Conv1d(1024, 1024, 5, 1, padding=2)),
         ])
-        self.conv_post = norm(Conv1d(512, 1, 3, 1, padding=1))
+        self.conv_post = norm(Conv1d(1024, 1, 3, 1, padding=1))
 
     def forward(self, signal):
         # TODO: shapes
@@ -486,8 +456,11 @@ class HiFiGAN(nn.Module):
         
         result = {}
 
-        mel_gt = self.mel(batch['signal_gt'].squeeze(1))
-        result.update({'mel_gt': mel_gt})
+        if 'signal_gt' in batch:
+            mel_gt = self.mel(batch['signal_gt'].squeeze(1))
+            result.update({'mel_gt': mel_gt})
+        else:
+            mel_gt = batch['mel_gt']
 
         signal_hat = self.generator(mel_gt)
         result.update({'signal_hat' : signal_hat})
@@ -496,13 +469,12 @@ class HiFiGAN(nn.Module):
             return result
 
         signal_gt = batch['signal_gt']
-        result.update({'signal_hat' : signal_hat})
 
         mel_hat = self.mel(signal_hat.squeeze(1))
         result.update({'mel_hat' : mel_hat})
         
-        discr_mpd = self.mpd(signal_gt, signal_hat)
-        discr_msd = self.msd(signal_gt, signal_hat)
+        discr_mpd = self.mpd(signal_gt, signal_hat.detach())
+        discr_msd = self.msd(signal_gt, signal_hat.detach())
 
         result.update(discr_mpd)
         result.update(discr_msd)
@@ -515,12 +487,38 @@ class HiFiGAN(nn.Module):
 
         return result
     
-    def losses(self, batch):
+    def losses(self, batch, optimizer=None):
         result = {}
 
         mel_gt = batch['mel_gt']
         mel_hat = batch['mel_hat']
 
+        hat_discr_mpd = batch['hat_discr_mpd']
+        gt_discr_mpd = batch['gt_discr_mpd']
+        hat_feat_mpd = batch['hat_feat_mpd']
+        gt_feat_mpd = batch['gt_feat_mpd']
+        hat_discr_msd = batch['hat_discr_msd']
+        gt_discr_msd = batch['gt_discr_msd']
+        hat_feat_msd = batch['hat_feat_msd']
+        gt_feat_msd = batch['gt_feat_msd']
+        
+        loss_disc_mpd = discriminator_loss(gt_discr_mpd, hat_discr_mpd)
+        loss_disc_msd = discriminator_loss(gt_discr_msd, hat_discr_msd)
+
+        loss_disc = loss_disc_mpd + loss_disc_msd
+
+        if optimizer is not None:
+            optimizer[1].zero_grad()
+            loss_disc.backward()
+            # self._clip_grad_norm()
+            optimizer[1].step()
+
+        signal_gt = batch['signal_gt']
+        signal_hat = batch['signal_hat']
+        discr_mpd = self.mpd(signal_gt, signal_hat)
+        discr_msd = self.msd(signal_gt, signal_hat)
+        batch.update(discr_mpd)
+        batch.update(discr_msd)
         hat_discr_mpd = batch['hat_discr_mpd']
         gt_discr_mpd = batch['gt_discr_mpd']
         hat_feat_mpd = batch['hat_feat_mpd']
@@ -537,10 +535,11 @@ class HiFiGAN(nn.Module):
         loss_gen_msd = generator_loss(hat_discr_msd)
         loss_gen = loss_gen_mpd + loss_gen_msd + Lambda_Feature_Loss * (loss_feat_mpd + loss_feat_msd) + Lambda_mel_loss * loss_mel
 
-        loss_disc_mpd = discriminator_loss(gt_discr_mpd, hat_discr_mpd)
-        loss_disc_msd = discriminator_loss(gt_discr_msd, hat_discr_msd)
-
-        loss_disc = loss_disc_mpd + loss_disc_msd
+        if optimizer is not None:
+            optimizer[0].zero_grad()
+            loss_gen.backward()
+            # self._clip_grad_norm()
+            optimizer[0].step()
 
         if PRINT_VERSIONS:
             print ('versions:')

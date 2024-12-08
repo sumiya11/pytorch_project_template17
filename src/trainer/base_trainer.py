@@ -30,7 +30,7 @@ class BaseTrainer:
         writer,
         epoch_len=None,
         eval_len=None,
-        skip_oom=True,
+        skip_oom=False,
         batch_transforms=None,
     ):
         """
@@ -516,16 +516,17 @@ class BaseTrainer:
                    ]
         sr = batch["sr"][0].item()
         data = [
-            [wandb.Audio(batch["signal_gt"][i, 0, :].cpu().detach(), sr), wandb.Audio(batch["signal_hat"][i, 0, :].cpu().detach(), sr), 
+            [wandb.Audio(batch["signal_gt"][i, 0, :].cpu().detach(), sr), 
+             wandb.Audio(batch["signal_hat"][i, 0, :].cpu().detach(), sr), 
              # wandb.Audio(batch["reference"][i, 0, :].cpu().detach(), sr)
              ]
             for i in range(B)
         ]
         wandb.log({"signal": wandb.Table(columns=columns, data=data)})
 
-        columns = ["mel_gt", "mel", "mel_hat"]
+        columns = ["mel_gt", "mel_hat"]
         data = [
-            [wandb.Image(batch["mel_gt"][i, :, :].cpu().detach()), wandb.Image(batch["mel"][i, :, :].cpu().detach()), wandb.Image(batch["mel_hat"][i, :, :].cpu().detach())]
+            [wandb.Image(batch["mel_gt"][i, :, :].cpu().detach()), wandb.Image(batch["mel_hat"][i, :, :].cpu().detach())]
             for i in range(B)
         ]
         wandb.log({"mel": wandb.Table(columns=columns, data=data)})

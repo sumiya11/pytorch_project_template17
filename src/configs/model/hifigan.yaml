@@ -1,0 +1,5 @@
+_target_: src.model.HiFiGAN
+mel_cfg:
+  _target_: src.model.MelSpectrogramConfig
+hifi_cfg:
+  _target_: src.model.HiFiConfig

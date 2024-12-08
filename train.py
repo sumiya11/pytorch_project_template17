@@ -33,6 +33,8 @@ def main(config):
     else:
         device = config.trainer.device
 
+    print("Device:", device)
+
     # setup data_loader instances
     # batch_transforms should be put on device
     dataloaders, batch_transforms = get_dataloaders(config, device)
@@ -48,7 +50,7 @@ def main(config):
     # build optimizer, learning rate scheduler
     generator_params = list(filter(
         lambda p: p.requires_grad, 
-        model.vocoder.generator.parameters()
+        model.generator.parameters()
     ))
     # print("GP", generator_params)
     generator_optimizer = instantiate(config.optimizer, params=generator_params)
@@ -56,7 +58,7 @@ def main(config):
 
     discriminator_params = list(filter(
         lambda p: p.requires_grad,
-        itertools.chain(model.vocoder.msd.parameters(), model.vocoder.mpd.parameters())
+        itertools.chain(model.msd.parameters(), model.mpd.parameters())
     ))
     # print("DP", discriminator_params)
 
@@ -83,7 +85,7 @@ def main(config):
         logger=logger,
         writer=writer,
         batch_transforms=batch_transforms,
-        skip_oom=config.trainer.get("skip_oom", True),
+        skip_oom=config.trainer.get("skip_oom", False),
     )
 
     trainer.train()

@@ -7,3 +7,4 @@ pace: 1.0
 speaker: 0
 cmudict_path: "cmudict-0.7b"
 heteronyms_path: "heteronyms"
+from_pretrained_hifi: "saved/model_best.pth"

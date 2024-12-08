@@ -39,59 +39,33 @@ class Trainer(BaseTrainer):
         outputs = self.model(batch)
         batch.update(outputs)
 
-        losses = self.model.losses(batch)
+        if self.is_train:
+            losses = self.model.losses(batch, self.optimizer)
+        else:
+            losses = self.model.losses(batch)
+
         batch.update(losses)
 
-        print("\n\n=============== outputs in log_stuff() ================")
-        for k, v in outputs.items():
-            try:
-                print(f"  {k:23}:   {v.shape}")
-            except:
-                try:
-                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
-                except:
-                    print(f"  {k:23}:   {type(v)}")
+        # if self.is_train:
+        #     if PRINT_VERSIONS:
+        #         print ('versions:')
+        #         print ('  loss_gen:', batch["loss_gen"]._version)
+        #         print ('  loss_disc:', batch["loss_disc"]._version)
 
-        print("\n\n=============== losses in log_stuff() ================")
-        for k, v in losses.items():
-            try:
-                print(f"  {k:23}:   {v.shape}")
-            except:
-                try:
-                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
-                except:
-                    print(f"  {k:23}:   {type(v)}")
-        
-        print("\n\n=============== batch in log_stuff() ================")
-        for k, v in batch.items():
-            try:
-                print(f"  {k:23}:   {v.shape}")
-            except:
-                try:
-                    print(f"  {k:23}:   {[v_.shape for v_ in v]}")
-                except:
-                    print(f"  {k:23}:   {type(v)}")
+        #     self.optimizer[0].zero_grad()
+        #     batch["loss_gen"].backward(retain_graph=True)
+        #     self._clip_grad_norm()
+        #     self.optimizer[0].step()
 
-        if self.is_train:
-            if PRINT_VERSIONS:
-                print ('versions:')
-                print ('  loss_gen:', batch["loss_gen"]._version)
-                print ('  loss_disc:', batch["loss_disc"]._version)
-
-            self.optimizer[0].zero_grad()
-            batch["loss_gen"].backward(retain_graph=True)
-            self._clip_grad_norm()
-            self.optimizer[0].step()
-
-            if PRINT_VERSIONS:
-                print ('versions:')
-                print ('  loss_gen:', batch["loss_gen"]._version)
-                print ('  loss_disc:', batch["loss_disc"]._version)
+        #     if PRINT_VERSIONS:
+        #         print ('versions:')
+        #         print ('  loss_gen:', batch["loss_gen"]._version)
+        #         print ('  loss_disc:', batch["loss_disc"]._version)
             
-            self.optimizer[1].zero_grad()
-            batch["loss_disc"].backward()
-            self._clip_grad_norm()
-            self.optimizer[1].step()
+        #     self.optimizer[1].zero_grad()
+        #     batch["loss_disc"].backward()
+        #     self._clip_grad_norm()
+        #     self.optimizer[1].step()
             
             # if self.lr_scheduler is not None:
             #     self.lr_scheduler[0].step()

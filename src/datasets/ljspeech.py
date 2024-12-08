@@ -8,11 +8,12 @@ import torchaudio
 from torch.utils.data import DataLoader, Dataset
 from pathlib import Path
 import pandas
+from librosa.util import normalize
 
 from src.model.hifi_gan import HiFiConfig
 
 class LJSpeech(Dataset):
-    def __init__(self, dir, hifi_config, mode='train', transform=None):
+    def __init__(self, dir, spec, hifi_config, mode='train', transform=None):
         """
         Arguments:
             dir (string): A path, root directory.
@@ -20,40 +21,43 @@ class LJSpeech(Dataset):
         self.mode = mode
         self.hifi_config = hifi_config
         self.dir = Path(dir)
+        self.spec = Path(spec)
         self.wavs = os.listdir(self.dir / 'wavs')
-        self.metadata = pandas.read_table(
-            self.dir / 'metadata.csv', 
+        self.spec = pandas.read_table(
+            self.spec / f'{mode}.csv', 
             header=None,
             delimiter='|')
-        print(self.metadata)
+        print(f"LJSpeech {mode} :", "\n", self.spec)
         self.id_to_transcript = {
-            self.metadata.loc[i, 0] : (self.metadata.loc[i, 1], self.metadata.loc[i, 2])
-            for i in range(len(self.metadata))    
+            self.spec.loc[i, 0] : (self.spec.loc[i, 1], self.spec.loc[i, 2])
+            for i in range(len(self.spec))    
         }
-        print(self.id_to_transcript[self.metadata.loc[0, 0]])
         self.format = 'wav'
         self.transform = transform
         print("Transform LJSpeech: ", transform)
         self.filter_index()
 
+        print(f"LJSpeech {mode} :", len(self), " items")
+
     def filter_index(self):
         self.wavs = self.wavs
 
     def __len__(self):
-        return len(self.wavs)
+        return len(self.id_to_transcript)
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         
+        id = self.spec.loc[idx, 0]
+
         signal, sr = torchaudio.load(
-            self.dir / 'wavs' / self.wavs[idx], 
+            self.dir / 'wavs' / f"{id}.{self.format}", 
             format=self.format
         )
 
-        signal = signal / self.hifi_config.MAX_WAV_VALUE
-
-        id = self.wavs[idx].split('.')[0]
+        # signal = signal / self.hifi_config.MAX_WAV_VALUE
+        # signal = torch.Tensor(normalize(signal.numpy()) * 0.95)  # magic number from the reference implementation
 
         transcript, normalized_transcript = self.id_to_transcript[id]
 
@@ -73,8 +77,6 @@ class LJSpeech(Dataset):
             'transcript': transcript,
             'normalized_transcript': normalized_transcript,
         }
-
-        # print("\n\nApply Transform GRIDDataset: ", self.transform, type(self.transform))
 
         if self.transform is not None:
             sample = self.transform(sample)

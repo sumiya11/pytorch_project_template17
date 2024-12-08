@@ -1,6 +1,7 @@
 train:
   _target_: src.datasets.LJSpeech
   dir: C:\Downloads_2\LJSpeech-1.1
+  spec: C:\Users\maxro\hw3\pytorch_project_template\data
   mode: train
   hifi_config:
     _target_: src.model.HiFiConfig
@@ -8,6 +9,7 @@ train:
 val:
   _target_: src.datasets.LJSpeech
   dir: C:\Downloads_2\LJSpeech-1.1
+  spec: C:\Users\maxro\hw3\pytorch_project_template\data
   mode: val
   hifi_config:
     _target_: src.model.HiFiConfig
